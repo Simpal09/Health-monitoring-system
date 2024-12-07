@@ -1,0 +1,82 @@
+// Smart Health Monitoring and Alert System
+
+#include <Servo.h>
+#include <LiquidCrystal_I2C.h>
+
+// Initialize components
+Servo servoMotor;
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+// Pins for sensors and actuators
+int heartRateSensorPin = A4;
+int tempSensorPin = A5;
+int waterButtonPin = 2;
+int ledPin = 3;
+
+// Variables for simulation
+int simulatedHeartRate = 75;
+int waitTime = 1000; // Time to wait in milliseconds
+
+void setup() {
+  servoMotor.attach(9); // Servo motor for medicine dispenser
+  pinMode(heartRateSensorPin, INPUT);
+  pinMode(tempSensorPin, INPUT);
+  pinMode(waterButtonPin, INPUT_PULLUP);
+  pinMode(ledPin, OUTPUT);
+
+  lcd.init(); // Initialize the LCD
+  lcd.backlight(); // Turn on the backlight
+}
+
+void loop() {
+  simulateHeartRate();
+  simulateTemperature();
+  checkWaterIntake();
+  
+  delay(waitTime); 
+}
+
+void simulateHeartRate() {
+
+  simulatedHeartRate = random(70, 91); 
+  
+  lcd.setCursor(0, 0);
+  lcd.print("HR: ");
+  lcd.print(simulatedHeartRate);
+  lcd.print(" bpm    ");
+}
+
+void simulateTemperature() {
+  // temperature variability
+  int temperature = random(0, 15); 
+  
+  lcd.setCursor(0, 1);
+  lcd.print("Temp: ");
+  lcd.print(temperature);
+  lcd.print(" C    ");
+}
+
+void checkWaterIntake() {
+  static unsigned long lastDebounceTime = 0;
+  static bool isServoOpen = false;
+  int reading = digitalRead(waterButtonPin);
+  
+  if (reading == LOW && (millis() - lastDebounceTime > 200)) { 
+    lastDebounceTime = millis(); // Update the last debounce time
+    
+    if (!isServoOpen) {
+      simulatedHeartRate += 5; // Increase heart rate due to activity
+      servoMotor.write(0); 
+      digitalWrite(ledPin, HIGH); // Turn on the LED
+      isServoOpen = true;
+      delay(waitTime); 
+    }
+  }
+  
+  if (isServoOpen && (millis() - lastDebounceTime > waitTime)) {
+    servoMotor.write(90); // Close the servo
+    digitalWrite(ledPin, LOW); // Turn off the LED
+    isServoOpen = false;
+    simulatedHeartRate = 75; // Reset to default heart rate
+  }
+}
